@@ -1,11 +1,10 @@
 __pycache__/
-*.py[cod]
 .pytest_cache/
-.venv/
+*.py[cod]
 *.egg-info/
+.venv/
 build/
 dist/
 *.wav
 *.flac
 *.mp3
-*.env

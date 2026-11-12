@@ -1,64 +1,57 @@
-# BLACKMAMBA VOCAL HERO AI 🎤🐍
+# BLACKMAMBA VOCAL HERO AI 🐍🎤
 
-**Local-first Vocal Gaming & Intelligence Engine** · BlackMamba Corp · v0.1.0 (experimental)
+**Guitar Hero-style adaptive vocal game — local-first engineering prototype v0.1.0**
 
-## Real status
+> **Implemented:** offline monophonic pitch estimation and explainable per-note scoring.
+> **Not implemented:** real-time microphone, game UI, lyric synchronization, learning, streaming connectors or automatic reference creation.
 
-**Implemented:** zero-dependency Python reference detector (monophonic YIN-like pitch estimator), Hz/MIDI conversion, deterministic note-level scoring with `UNSCORABLE`, PCM16 mono WAV reader, offline diagnostic CLI, synthetic tests and GitHub Actions CI configuration.
+## Goal
+Build a vocal game that listens to your singing, evaluates technical accuracy, learns your capabilities without silently changing historical scores, and runs locally as much as possible. Use proven third-party libraries first; replace strategically with validated BlackMamba-owned modules.
 
-**Not yet implemented:** real-time microphone capture, UI/gameplay, lyrics window, automatic reference melody extraction, source separation, adaptive AI, Suno/Spotify/SoundCloud account connections, system-wide audio capture. These require separate permission, data, latency and quality validation. Analyzing a streamed track is **not** guaranteed by a metadata/control API.
+## Local setup
 
-## Operational start (Python >=3.11)
+Requires Python 3.10+ and NumPy. Does not need internet after installation.
 
 ```bash
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install -e .
-python -m unittest discover -s tests -v
-blackmamba-voice path/to/your_mono_16bit.wav
+python -m pip install -e '.[dev]'
+python -m pytest -q
+blackmamba-voice own_vocal.wav --out report.json
 ```
 
-No runtime network connection, cloud model or credential is needed. The command analyzes **one frame at the midpoint** of a locally provided mono PCM16 WAV and reports an estimated frequency, confidence, RMS and MIDI pitch; it does not transcribe a full song.
+Optionally evaluate against `targets.json`:
 
-## Layout
-
-```text
-src/blackmamba_voice/
-  pitch.py       monophonic fundamental frequency estimator
-  scoring.py     reproducible, explainable note grades
-  wavio.py       WAV PCM16 mono loader
-  cli.py         offline diagnostic
-tests/           synthetic signal and scoring tests
-.github/workflows/test.yml
+```json
+[
+  {"start_s":0.0,"end_s":0.5,"midi":69},
+  {"start_s":0.5,"end_s":1.0,"midi":71}
+]
 ```
 
-## Evaluation contract
+```bash
+blackmamba-voice own_vocal.wav --target targets.json --out scored.json
+```
 
-- `Note(note_id, start_ms, end_ms, midi_pitch)` represents a **verified** reference melody event.
-- `Observation(timestamp_ms, f0_hz, confidence)` represents a measured vocal frame.
-- `score_notes` outputs `PERFECT` / `GREAT` / `GOOD` / `MISS` / `UNSCORABLE` with signed cents error, onset error, confidence, points and scoring version.
-- Insufficient confident frames always produce `UNSCORABLE`, **not** a penalty.
-- Scores are preliminary **heuristics**, not calibrated against singers; no claims about vocal skill or clinical suitability are made.
-- Timestamp compensation is caller-provided and should come from measured device calibration.
-- For silence or uncertain fundamental frequency the pitch detector returns `None`.
+The input must be uncompressed integer-PCM WAV (8/16/24/32-bit); stereo is mixed to mono. Pitch frames include timestamp, Hz, MIDI and *heuristic* confidence. Silence produces no fabricated pitch. Scores use target note intervals and 50-cent default tolerance. Without overlapping recorded frames the score is `null`, not zero. Current coverage measures target notes with observed frames, not fraction of reference duration.
 
-## Engineering milestones
+## Code
+- `src/blackmamba_voice/core.py`: pure local WAV decoding, FFT-accelerated YIN-style pitch tracking, note scoring.
+- `src/blackmamba_voice/cli.py`: JSON report command.
+- `tests/test_core.py`: 16 local synthetic and boundary tests.
+- `.github/workflows/test.yml`: CI test matrix for Python 3.10/3.12/3.13.
 
-1. **v0.1 reference core:** deterministic offline detection/scoring + synthetic test corpus.
-2. **v0.2 real-time host:** Core Audio microphone adapter, rolling frames, latency calibration and safe monitoring.
-3. **v0.3 reference engine:** licensed/owned audio import, verified note maps, manual note-map editor, alignment and confidence.
-4. **v0.4 game:** note highway, combo, independent lyrics overlay (owned/licensed text), practice and ghost.
-5. **v0.5 local intelligence:** versioned singer profile, reversible adaptive difficulty and opt-in recordings.
-6. **v0.6 providers:** optional API adapters for allowed catalog/control capabilities; no DRM bypass or unlicensed lyric scraping.
+## Limitations
+This score measures **pitch alignment only**, not expressive interpretation, rhythmic accuracy, vocal quality or lyric accuracy. Dry monophonic recordings are recommended: accompaniment, harmonics and reverberation can confuse detection. No user accounts or third-party audio access are implemented.
 
-## Dependency strategy
+## Roadmap
+1. v0.2: local microphone bridge, timestamp calibration and latency benchmarks.
+2. v0.3: visual note lanes, overlay and separate lyrics panel for rights-cleared text.
+3. v0.4: onset/rhythm error measurement, confidence abstention and artistically flexible judgment.
+4. v0.5: versioned on-device adaptive training, personal best and Ghost Mode.
+5. v0.6: legal Suno export import and permission-constrained Spotify/SoundCloud metadata/playback connectors.
 
-**BUILD → VALIDATE → REPLACE.** Prefer mature local libraries and OS APIs to accelerate delivery; progressively replace only strategic components when benchmarked and justified. Keep the game, provider adapters and DSP core decoupled. The v0.1 Python DSP is a correctness reference, **not** a benchmarked real-time implementation.
+## Policy
+**Build → Validate → Replace.** Start with NumPy and existing OS audio APIs; compare any replacement using repeatable pitch accuracy, p50/p95 latency, CPU and memory tests. Privacy by design; no hidden microphone capture, account secrets in Git, cloud uploads without consent, DRM bypass, or unexpected microphone monitoring.
 
-## Acceptance metrics planned
-
-Compare pitch cents error across synthetic voiced tones (80–1000 Hz) and then human recordings; measure voiced/unvoiced false positives, octave errors, CPU, end-to-end latency and track-to-microphone alignment under controlled conditions. Report measured hardware and conditions. Until then, these are targets, not achieved results.
-
-## Safety, privacy and integrations
-
-On-device analysis is the default. Never commit recordings, access tokens or confidential catalog exports. Obtain permission for mic/system audio, and comply with streaming and lyrics licensing restrictions. No automatic playback gain or uncontrolled audio feedback.
+**BlackMamba Corp — Music Intelligence Laboratory**

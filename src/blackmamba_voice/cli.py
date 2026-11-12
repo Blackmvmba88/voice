@@ -1,24 +1,29 @@
-"""Offline developer CLI: inspect monophonic WAV with local pitch detector."""
+"""Offline command-line analysis."""
 import argparse
 import json
-from .wavio import read_mono_pcm16
-from .pitch import estimate_pitch_yin, hz_to_midi
-
+from pathlib import Path
+from .core import TargetNote, analyze_audio, pitch_frame_dicts, read_mono_wav, score_notes
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description='BlackMamba Vocal Hero offline diagnostic')
-    parser.add_argument('wav', help='mono PCM16 WAV to analyze')
-    parser.add_argument('--min-hz', type=float, default=80.0)
-    parser.add_argument('--max-hz', type=float, default=1000.0)
+    parser = argparse.ArgumentParser(description="BlackMamba Vocal Hero: local pitch evaluator")
+    parser.add_argument("wav", help="Own isolated vocal PCM WAV")
+    parser.add_argument("--target", help="Optional JSON array of target notes")
+    parser.add_argument("--out", help="Write JSON output to this path")
     args = parser.parse_args()
-    sr, samples = read_mono_pcm16(args.wav)
-    # One frame from the middle: explicitly a diagnostic, not a song transcription.
-    frame_size = max(2048, int(sr * 0.08))
-    mid = len(samples) // 2
-    frame = samples[max(0, mid - frame_size // 2): max(0, mid - frame_size // 2) + frame_size]
-    est = estimate_pitch_yin(frame, sr, min_hz=args.min_hz, max_hz=args.max_hz)
-    print(json.dumps({'f0_hz': est.f0_hz, 'confidence': est.confidence,
-                      'rms': est.rms, 'midi': hz_to_midi(est.f0_hz) if est.f0_hz else None}, indent=2))
+    samples, rate = read_mono_wav(args.wav)
+    frames = analyze_audio(samples, rate)
+    report = {"version":"0.1.0","input":args.wav,"sample_rate":rate,
+              "duration_s":round(len(samples)/rate,3),"pitch_frames":pitch_frame_dicts(frames)}
+    if args.target:
+        payload = json.loads(Path(args.target).read_text(encoding="utf-8"))
+        if not isinstance(payload, list):
+            parser.error("Target file must be a JSON array")
+        report["evaluation"] = score_notes(frames,[TargetNote(**entry) for entry in payload])
+    result = json.dumps(report, ensure_ascii=False, indent=2, allow_nan=False)+"\n"
+    if args.out:
+        Path(args.out).write_text(result,encoding="utf-8")
+    else:
+        print(result)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
