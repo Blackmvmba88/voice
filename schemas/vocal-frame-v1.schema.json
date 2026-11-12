@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://blackmamba.example/schemas/vocal-frame-v1.schema.json",
+  "title": "VocalFrame v1",
+  "description": "One monophonic pitch observation; sample_position is the center sample of the analysis frame in the microphone clock domain. No presentation timestamp is implied.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_type",
+    "session_id",
+    "sequence",
+    "sample_rate",
+    "sample_position",
+    "detector",
+    "f0_hz",
+    "midi_pitch",
+    "f0_confidence",
+    "rms_dbfs",
+    "discontinuity"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "event_type": {
+      "const": "vocal.frame"
+    },
+    "session_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "sample_rate": {
+      "type": "integer",
+      "minimum": 8000,
+      "maximum": 192000
+    },
+    "sample_position": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "detector": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "f0_hz": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "exclusiveMinimum": 0,
+      "maximum": 10000
+    },
+    "midi_pitch": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0,
+      "maximum": 127
+    },
+    "f0_confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "rms_dbfs": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "maximum": 0,
+      "description": "null represents digital silence (-infinity dBFS)"
+    },
+    "discontinuity": {
+      "type": "boolean"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "f0_hz": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "f0_hz"
+        ]
+      },
+      "then": {
+        "properties": {
+          "midi_pitch": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "midi_pitch": {
+            "type": "null"
+          }
+        },
+        "required": [
+          "midi_pitch"
+        ]
+      },
+      "then": {
+        "properties": {
+          "f0_hz": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ]
+}
