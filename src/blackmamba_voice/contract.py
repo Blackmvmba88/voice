@@ -39,19 +39,19 @@ class VocalFrameV1:
             raise ValueError("Invalid detector")
         if type(self.discontinuity) is not bool:
             raise ValueError("Invalid discontinuity")
-        if not isfinite(self.f0_confidence) or not 0 <= self.f0_confidence <= 1:
+        if type(self.f0_confidence) not in (float, int) or not isfinite(self.f0_confidence) or not 0 <= self.f0_confidence <= 1:
             raise ValueError("Invalid confidence")
-        if self.rms_dbfs is not None and (not isfinite(self.rms_dbfs) or self.rms_dbfs > 0):
+        if self.rms_dbfs is not None and (type(self.rms_dbfs) not in (float, int) or not isfinite(self.rms_dbfs) or self.rms_dbfs > 0):
             raise ValueError("Invalid RMS dBFS")
         if (self.f0_hz is None) != (self.midi_pitch is None):
             raise ValueError("Pitch and MIDI must both be null or both be present")
         if self.f0_hz is not None:
-            if not isfinite(self.f0_hz) or not 0 < self.f0_hz <= 10000:
+            if type(self.f0_hz) not in (float, int) or not isfinite(self.f0_hz) or not 0 < self.f0_hz <= 10000:
                 raise ValueError("Invalid f0_hz")
-            if not isfinite(self.midi_pitch) or not 0 <= self.midi_pitch <= 127:
+            if type(self.midi_pitch) not in (float, int) or not isfinite(self.midi_pitch) or not 0 <= self.midi_pitch <= 127:
                 raise ValueError("Invalid midi_pitch")
             expected = 69 + 12 * log2(self.f0_hz / 440)
-            if abs(expected - self.midi_pitch) > 0.01:
+            if abs(expected - self.midi_pitch) > 0.01 + 1e-12:
                 raise ValueError("Hz/MIDI mismatch beyond 1 cent")
 
     def to_dict(self):

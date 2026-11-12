@@ -58,3 +58,24 @@ def test_rate_change():
     validator.accept(VocalFrameV1.from_dict(valid(session_id=session)))
     with pytest.raises(ValueError):
         validator.accept(VocalFrameV1.from_dict(valid(session_id=session,sequence=1,sample_position=2880,sample_rate=44100)))
+
+def test_one_cent_boundary():
+    payload=valid(midi_pitch=69.01)
+    assert VocalFrameV1.from_dict(payload).midi_pitch==69.01
+    with pytest.raises(ValueError):
+        VocalFrameV1.from_dict(valid(midi_pitch=69.0101))
+
+@pytest.mark.parametrize("field,value",[
+    ("f0_confidence","0.9"),("f0_confidence",None),
+    ("f0_hz","440"),("midi_pitch","69"),("rms_dbfs","-17"),
+    ("f0_hz",None)
+])
+def test_invalid_types_and_null_coherence(field,value):
+    with pytest.raises((ValueError,TypeError)):
+        VocalFrameV1.from_dict(valid(**{field:value}))
+
+def test_gap_is_allowed_and_observable():
+    session=str(uuid.uuid4())
+    validator=FrameSequenceValidator()
+    validator.accept(VocalFrameV1.from_dict(valid(session_id=session,sequence=1024,sample_position=491520)))
+    validator.accept(VocalFrameV1.from_dict(valid(session_id=session,sequence=1026,sample_position=492480,discontinuity=True)))
