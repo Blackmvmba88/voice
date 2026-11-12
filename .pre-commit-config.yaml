@@ -1,0 +1,15 @@
+repos:
+  - repo: local
+    hooks:
+      - id: contract-check
+        name: VocalFrame v1 contract
+        entry: python scripts/check_vocalframe_contract.py --strict
+        language: system
+        pass_filenames: false
+        files: ^(src/|schemas/|scripts/)
+      - id: fast-tests
+        name: Python tests
+        entry: python -m pytest -q -x tests
+        language: system
+        pass_filenames: false
+        files: ^(src/|tests/|pyproject.toml)
